@@ -19,8 +19,7 @@ import {
 } from '@stripe/ui-extension-sdk/ui';
 import type { ExtensionContextValue } from '@stripe/ui-extension-sdk/context';
 import { useCallback, useEffect, useState } from 'react';
-
-const API_BASE_URL = 'https://backend-production-5e37.up.railway.app';
+import fetchStripeSignature from '@stripe/ui-extension-sdk/signature';
 
 // States where surcharging is prohibited
 const PROHIBITED_STATES = ['CA', 'CT', 'MA', 'ME', 'PR'];
@@ -43,6 +42,20 @@ interface Analytics {
   };
 }
 
+// Helper to make authenticated backend requests
+async function backendFetch(path: string, options: RequestInit = {}) {
+  const signature = await fetchStripeSignature();
+  const response = await fetch(`https://backend-production-5e37.up.railway.app${path}`, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Content-Type': 'application/json',
+      'Stripe-Signature': signature,
+    },
+  });
+  return response;
+}
+
 const DashboardView = ({
   userContext,
 }: ExtensionContextValue) => {
@@ -62,22 +75,22 @@ const DashboardView = ({
   // Fetch merchant settings on mount
   useEffect(() => {
     const fetchData = async () => {
-      if (!stripeAccountId) return;
+      if (!stripeAccountId) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
         setError(null);
 
         // Fetch or create merchant
-        let response = await fetch(
-          `${API_BASE_URL}/api/merchants/by-stripe/${stripeAccountId}`
-        );
+        let response = await backendFetch(`/api/merchants/by-stripe/${stripeAccountId}`);
 
         if (response.status === 404) {
           // Create merchant if doesn't exist
-          response = await fetch(`${API_BASE_URL}/api/merchants`, {
+          response = await backendFetch('/api/merchants', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               stripeAccountId,
               surchargeRate: 0.029,
@@ -98,9 +111,7 @@ const DashboardView = ({
         setExcludedStates(merchant.excludedStates);
 
         // Fetch analytics
-        const analyticsResponse = await fetch(
-          `${API_BASE_URL}/api/merchants/${merchant.id}/analytics`
-        );
+        const analyticsResponse = await backendFetch(`/api/merchants/${merchant.id}/analytics`);
 
         if (analyticsResponse.ok) {
           const analyticsData = await analyticsResponse.json();
@@ -124,18 +135,14 @@ const DashboardView = ({
       setSaving(true);
       setError(null);
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/merchants/${settings.id}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            surchargeRate: parseFloat(surchargeRate) / 100,
-            enabled,
-            excludedStates,
-          }),
-        }
-      );
+      const response = await backendFetch(`/api/merchants/${settings.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          surchargeRate: parseFloat(surchargeRate) / 100,
+          enabled,
+          excludedStates,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error('Failed to save settings');
@@ -330,9 +337,9 @@ const DashboardView = ({
               ? `Sent ${new Date(settings.mastercardNotifiedAt).toLocaleDateString()}`
               : 'Required 30 days before surcharging'}
           </Box>
-          {!settings?.mastercardNotifiedAt && (
+          {!settings?.mastercardNotifiedAt && settings?.id && (
             <Box css={{ marginTop: 'small', marginLeft: 'large' }}>
-              <Link href={`${API_BASE_URL}/api/merchants/${settings?.id}/compliance/mastercard-letter`}>
+              <Link href={`https://backend-production-5e37.up.railway.app/api/merchants/${settings.id}/compliance/mastercard-letter`}>
                 Generate notification letter
               </Link>
             </Box>
