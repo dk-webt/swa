@@ -30,9 +30,9 @@ const fastify = Fastify({
 
 // Register CORS
 await fastify.register(cors, {
-  origin: process.env.CORS_ORIGIN?.split(',') ?? ['http://localhost:3000'],
+  origin: true, // Allow all origins for Stripe App
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Merchant-Id', 'X-Admin-Key'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Merchant-Id', 'X-Admin-Key', 'Stripe-Signature'],
 });
 
 // Health check endpoint
