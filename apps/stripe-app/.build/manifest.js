@@ -2,7 +2,7 @@
 import DashboardView from '../src/views/DashboardView';import PaymentDetailView from '../src/views/PaymentDetailView';
 
 export * from '@stripe/ui-extension-sdk/version';
-export const BUILD_TIME = '2026-01-11 07:06:20.007209387 +0000 UTC m=+2.081077483';
+export const BUILD_TIME = '2026-01-11 07:14:57.097576054 +0000 UTC m=+0.827285536';
 
 export { 
   DashboardView,	
@@ -56,5 +56,5 @@ export default {
       }
     ]
   },
-  "version": "0.1.0"
+  "version": "0.1.1"
 };

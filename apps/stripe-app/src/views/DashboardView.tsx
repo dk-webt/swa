@@ -10,14 +10,12 @@ import {
   Button,
   ContextView,
   Divider,
-  Icon,
   Inline,
   Link,
-  Select,
-  Spinner,
   Switch,
   TextField,
-  Banner,
+  Badge,
+  Notice,
 } from '@stripe/ui-extension-sdk/ui';
 import type { ExtensionContextValue } from '@stripe/ui-extension-sdk/context';
 import { useCallback, useEffect, useState } from 'react';
@@ -45,9 +43,8 @@ interface Analytics {
   };
 }
 
-export const DashboardView = ({
+const DashboardView = ({
   userContext,
-  environment,
 }: ExtensionContextValue) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -85,7 +82,7 @@ export const DashboardView = ({
               stripeAccountId,
               surchargeRate: 0.029,
               enabled: true,
-              excludedStates: PROHIBITED_STATES, // Auto-exclude prohibited states
+              excludedStates: PROHIBITED_STATES,
             }),
           });
         }
@@ -157,7 +154,6 @@ export const DashboardView = ({
     return (
       <ContextView title="SWA - Surcharge Automation">
         <Box css={{ padding: 'large', textAlign: 'center' }}>
-          <Spinner size="large" />
           <Box css={{ marginTop: 'medium' }}>Loading settings...</Box>
         </Box>
       </ContextView>
@@ -167,14 +163,12 @@ export const DashboardView = ({
   if (error) {
     return (
       <ContextView title="SWA - Surcharge Automation">
-        <Banner
-          type="critical"
-          title="Error"
-          description={error}
-          actions={
-            <Button onPress={() => window.location.reload()}>Retry</Button>
-          }
-        />
+        <Notice type="caution" title="Error">
+          {error}
+        </Notice>
+        <Box css={{ marginTop: 'medium' }}>
+          <Button onPress={() => window.location.reload()}>Retry</Button>
+        </Box>
       </ContextView>
     );
   }
@@ -220,7 +214,7 @@ export const DashboardView = ({
             </Box>
             <Box>
               <Box css={{ fontSize: 'small', color: 'secondary' }}>
-                Ineligible (Debit/State)
+                Ineligible
               </Box>
               <Box css={{ fontSize: 'xlarge', fontWeight: 'bold' }}>
                 {analytics.last30Days.ineligible}
@@ -245,7 +239,7 @@ export const DashboardView = ({
             onChange={(e) => setEnabled(e.target.checked)}
           />
           <Box css={{ fontSize: 'small', color: 'secondary', marginTop: 'xsmall' }}>
-            When disabled, no surcharges will be applied to any transactions
+            When disabled, no surcharges will be applied
           </Box>
         </Box>
 
@@ -254,13 +248,9 @@ export const DashboardView = ({
             label="Surcharge Rate (%)"
             value={surchargeRate}
             onChange={(e) => setSurchargeRate(e.target.value)}
-            type="number"
-            min="0"
-            max="3"
-            step="0.1"
           />
           <Box css={{ fontSize: 'small', color: 'secondary', marginTop: 'xsmall' }}>
-            Maximum allowed: 3% (Visa/Mastercard rules). Some states have lower caps.
+            Maximum: 3% (Visa/MC rules)
           </Box>
         </Box>
 
@@ -269,8 +259,7 @@ export const DashboardView = ({
             Excluded States
           </Box>
           <Box css={{ fontSize: 'small', color: 'secondary', marginBottom: 'small' }}>
-            Customers from these states will not be charged a surcharge.
-            States marked with * are prohibited by law and cannot be removed.
+            States marked with * are prohibited by law.
           </Box>
           <Inline css={{ gap: 'small', flexWrap: 'wrap' }}>
             {['CA', 'CT', 'MA', 'ME', 'CO', 'MT', 'NY', 'PR'].map((state) => {
@@ -291,8 +280,7 @@ export const DashboardView = ({
                     }
                   }}
                 >
-                  {state}
-                  {isProhibited ? '*' : ''}
+                  {state}{isProhibited ? '*' : ''}
                 </Button>
               );
             })}
@@ -305,46 +293,46 @@ export const DashboardView = ({
       {/* Compliance Section */}
       <Box css={{ marginTop: 'large' }}>
         <Box css={{ fontWeight: 'semibold', marginBottom: 'medium' }}>
-          Compliance
+          Compliance Status
         </Box>
 
-        <Box css={{ marginBottom: 'medium' }}>
+        <Box css={{ marginBottom: 'small' }}>
           <Inline css={{ alignItems: 'center', gap: 'small' }}>
-            <Icon name="checkCircle" css={{ color: 'success' }} />
-            <Box>BIN Detection: Active</Box>
+            <Badge type="positive">Active</Badge>
+            <Box>BIN Detection</Box>
           </Inline>
           <Box css={{ fontSize: 'small', color: 'secondary', marginLeft: 'large' }}>
-            Debit and prepaid cards are automatically excluded from surcharging
+            Debit/prepaid cards excluded automatically
           </Box>
         </Box>
 
-        <Box css={{ marginBottom: 'medium' }}>
+        <Box css={{ marginBottom: 'small' }}>
           <Inline css={{ alignItems: 'center', gap: 'small' }}>
-            <Icon name="checkCircle" css={{ color: 'success' }} />
-            <Box>State Compliance: Active</Box>
+            <Badge type="positive">Active</Badge>
+            <Box>State Compliance</Box>
           </Inline>
           <Box css={{ fontSize: 'small', color: 'secondary', marginLeft: 'large' }}>
-            Prohibited states (CA, CT, MA, ME, PR) are automatically blocked
+            CA, CT, MA, ME, PR blocked
           </Box>
         </Box>
 
-        <Box css={{ marginBottom: 'medium' }}>
+        <Box css={{ marginBottom: 'small' }}>
           <Inline css={{ alignItems: 'center', gap: 'small' }}>
             {settings?.mastercardNotifiedAt ? (
-              <Icon name="checkCircle" css={{ color: 'success' }} />
+              <Badge type="positive">Complete</Badge>
             ) : (
-              <Icon name="warning" css={{ color: 'warning' }} />
+              <Badge type="warning">Pending</Badge>
             )}
             <Box>Mastercard Notification</Box>
           </Inline>
           <Box css={{ fontSize: 'small', color: 'secondary', marginLeft: 'large' }}>
             {settings?.mastercardNotifiedAt
-              ? `Sent on ${new Date(settings.mastercardNotifiedAt).toLocaleDateString()}`
-              : 'Required 30 days before surcharging Mastercard transactions'}
+              ? `Sent ${new Date(settings.mastercardNotifiedAt).toLocaleDateString()}`
+              : 'Required 30 days before surcharging'}
           </Box>
           {!settings?.mastercardNotifiedAt && (
             <Box css={{ marginTop: 'small', marginLeft: 'large' }}>
-              <Link href={`${API_BASE_URL}/compliance/mastercard-letter`}>
+              <Link href={`${API_BASE_URL}/api/merchants/${settings?.id}/compliance/mastercard-letter`}>
                 Generate notification letter
               </Link>
             </Box>
@@ -360,12 +348,7 @@ export const DashboardView = ({
           Integration
         </Box>
         <Box css={{ fontSize: 'small', color: 'secondary' }}>
-          Merchant ID: <code>{settings?.id}</code>
-        </Box>
-        <Box css={{ marginTop: 'small' }}>
-          <Link href="https://docs.swa.dev/integration">
-            View integration documentation
-          </Link>
+          Merchant ID: {settings?.id}
         </Box>
       </Box>
     </ContextView>

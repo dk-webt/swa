@@ -9,13 +9,12 @@ import {
   Box,
   ContextView,
   Divider,
-  Icon,
   Inline,
   Badge,
 } from '@stripe/ui-extension-sdk/ui';
 import type { ExtensionContextValue } from '@stripe/ui-extension-sdk/context';
 
-export const PaymentDetailView = ({
+const PaymentDetailView = ({
   environment,
 }: ExtensionContextValue) => {
   // Get payment intent from environment context
@@ -128,9 +127,9 @@ export const PaymentDetailView = ({
         <Box css={{ marginBottom: 'small' }}>
           <Inline css={{ alignItems: 'center', gap: 'small' }}>
             {swaEligible ? (
-              <Icon name="checkCircle" css={{ color: 'success' }} />
+              <Badge type="positive">Eligible</Badge>
             ) : (
-              <Icon name="xCircle" css={{ color: 'warning' }} />
+              <Badge type="warning">Not Eligible</Badge>
             )}
             <Box>{getReasonLabel(swaReason)}</Box>
           </Inline>
@@ -142,13 +141,13 @@ export const PaymentDetailView = ({
               'Surcharging debit cards is prohibited in the US'
             )}
             {swaReason === 'state_prohibited' && (
-              'The customer\'s billing state prohibits credit card surcharging'
+              "The customer's billing state prohibits surcharging"
             )}
             {swaReason === 'prepaid_card' && (
               'Surcharging prepaid cards is not allowed'
             )}
             {swaReason === 'unknown_card_type' && (
-              'Could not determine card type - surcharge not applied for safety'
+              'Could not determine card type'
             )}
           </Box>
         )}
