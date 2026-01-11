@@ -2,7 +2,7 @@
 import DashboardView from '../src/views/DashboardView';import PaymentDetailView from '../src/views/PaymentDetailView';
 
 export * from '@stripe/ui-extension-sdk/version';
-export const BUILD_TIME = '2026-01-11 07:14:57.097576054 +0000 UTC m=+0.827285536';
+export const BUILD_TIME = '2026-01-11 07:20:21.347717257 +0000 UTC m=+0.847666660';
 
 export { 
   DashboardView,	
@@ -40,7 +40,8 @@ export default {
   "ui_extension": {
     "content_security_policy": {
       "connect-src": [
-        "https://backend-production-5e37.up.railway.app/api"
+        "https://backend-production-5e37.up.railway.app/api/merchants",
+        "https://backend-production-5e37.up.railway.app/api/compliance"
       ],
       "image-src": null,
       "purpose": ""
@@ -56,5 +57,5 @@ export default {
       }
     ]
   },
-  "version": "0.1.1"
+  "version": "0.1.2"
 };

@@ -28,7 +28,8 @@
   "ui_extension": {
     "content_security_policy": {
       "connect-src": [
-        "https://backend-production-5e37.up.railway.app/api"
+        "https://backend-production-5e37.up.railway.app/api/merchants",
+        "https://backend-production-5e37.up.railway.app/api/compliance"
       ],
       "image-src": null,
       "purpose": ""
@@ -44,5 +45,5 @@
       }
     ]
   },
-  "version": "0.1.1"
+  "version": "0.1.2"
 }
