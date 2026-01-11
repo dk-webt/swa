@@ -9,9 +9,7 @@ import Stripe from 'stripe';
 import type { CardFunding } from './compliance.js';
 
 // Initialize Stripe client
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: '2024-11-20.acacia',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '');
 
 export { stripe };
 

@@ -238,10 +238,10 @@ export default async function merchantRoutes(fastify: FastifyInstance) {
           totalSurcharges: transactionStats._sum.surchargeAmount ?? 0,
           totalAmount: transactionStats._sum.totalAmount ?? 0,
           last30Days: {
-            eligible: monthlyTransactions.find(t => t.eligible)?._count ?? 0,
-            ineligible: monthlyTransactions.find(t => !t.eligible)?._count ?? 0,
+            eligible: monthlyTransactions.find((t: { eligible: boolean }) => t.eligible)?._count ?? 0,
+            ineligible: monthlyTransactions.find((t: { eligible: boolean }) => !t.eligible)?._count ?? 0,
             surchargeAmount:
-              monthlyTransactions.find(t => t.eligible)?._sum.surchargeAmount ?? 0,
+              monthlyTransactions.find((t: { eligible: boolean }) => t.eligible)?._sum.surchargeAmount ?? 0,
           },
           recentTransactions,
         });

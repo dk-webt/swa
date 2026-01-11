@@ -41,7 +41,7 @@ export default async function webhookRoutes(fastify: FastifyInstance) {
         WEBHOOK_SECRET
       );
     } catch (error) {
-      fastify.log.error('Webhook signature verification failed:', error);
+      fastify.log.error({ err: error }, 'Webhook signature verification failed');
       return reply.status(400).send({ error: 'Webhook signature verification failed' });
     }
 
@@ -69,7 +69,7 @@ export default async function webhookRoutes(fastify: FastifyInstance) {
           fastify.log.info(`Unhandled event type: ${event.type}`);
       }
     } catch (error) {
-      fastify.log.error(`Error handling webhook ${event.type}:`, error);
+      fastify.log.error({ err: error, eventType: event.type }, 'Error handling webhook');
       // Still return 200 to prevent Stripe from retrying
       // Log the error for investigation
     }
