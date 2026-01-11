@@ -167,3 +167,5 @@ export const PaymentDetailView = ({
     </ContextView>
   );
 };
+
+export default PaymentDetailView;

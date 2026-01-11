@@ -371,3 +371,5 @@ export const DashboardView = ({
     </ContextView>
   );
 };
+
+export default DashboardView;
