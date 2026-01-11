@@ -22,7 +22,7 @@
     }
   ],
   "app_backend": {
-    "url": "https://swa-backend.up.railway.app"
+    "url": "https://backend-production-5e37.up.railway.app"
   },
   "ui_extension": {
     "views": [
@@ -37,13 +37,13 @@
     ],
     "content_security_policy": {
       "connect-src": [
-        "https://swa-backend.up.railway.app"
+        "https://backend-production-5e37.up.railway.app"
       ]
     }
   },
   "post_install_action": {
     "type": "external",
-    "url": "https://swa-backend.up.railway.app/onboarding"
+    "url": "https://backend-production-5e37.up.railway.app/onboarding"
   },
   "distribution_type": "public",
   "allowed_redirect_uris": []

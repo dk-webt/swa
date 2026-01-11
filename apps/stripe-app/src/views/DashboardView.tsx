@@ -22,7 +22,7 @@ import {
 import type { ExtensionContextValue } from '@stripe/ui-extension-sdk/context';
 import { useCallback, useEffect, useState } from 'react';
 
-const API_BASE_URL = 'https://swa-backend.up.railway.app';
+const API_BASE_URL = 'https://backend-production-5e37.up.railway.app';
 
 // States where surcharging is prohibited
 const PROHIBITED_STATES = ['CA', 'CT', 'MA', 'ME', 'PR'];

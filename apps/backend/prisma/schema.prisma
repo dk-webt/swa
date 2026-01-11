@@ -10,6 +10,7 @@ datasource db {
 model Merchant {
   id                   String    @id @default(uuid())
   stripeAccountId      String    @unique @map("stripe_account_id")
+  stripeCustomerId     String?   @map("stripe_customer_id")
   surchargeRate        Decimal   @default(0.029) @map("surcharge_rate") @db.Decimal(5, 4)
   enabled              Boolean   @default(true)
   excludedStates       String[]  @default([]) @map("excluded_states")

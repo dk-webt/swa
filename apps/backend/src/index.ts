@@ -10,6 +10,8 @@ import eligibilityRoutes from './api/eligibility.js';
 import calculateRoutes from './api/calculate.js';
 import merchantRoutes from './api/merchants.js';
 import webhookRoutes from './api/webhooks.js';
+import billingRoutes from './api/billing.js';
+import complianceRoutes from './api/compliance.js';
 
 const fastify = Fastify({
   logger: {
@@ -30,7 +32,7 @@ const fastify = Fastify({
 await fastify.register(cors, {
   origin: process.env.CORS_ORIGIN?.split(',') ?? ['http://localhost:3000'],
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Merchant-Id'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Merchant-Id', 'X-Admin-Key'],
 });
 
 // Health check endpoint
@@ -53,8 +55,13 @@ fastify.get('/', async () => {
       merchants: 'GET/POST /api/merchants',
       merchantById: 'GET/PATCH /api/merchants/:id',
       merchantAnalytics: 'GET /api/merchants/:id/analytics',
+      merchantBilling: 'GET /api/merchants/:id/billing',
       complianceStates: 'GET /api/compliance/states',
+      complianceStatus: 'GET /api/merchants/:id/compliance/status',
+      mastercardLetter: 'GET /api/merchants/:id/compliance/mastercard-letter',
       webhooks: 'POST /api/webhooks/stripe',
+      adminBillingRun: 'POST /api/admin/billing/run',
+      adminBillingPreview: 'GET /api/admin/billing/preview',
     },
   };
 });
@@ -64,6 +71,8 @@ await fastify.register(eligibilityRoutes);
 await fastify.register(calculateRoutes);
 await fastify.register(merchantRoutes);
 await fastify.register(webhookRoutes);
+await fastify.register(billingRoutes);
+await fastify.register(complianceRoutes);
 
 // Start server
 const start = async () => {
