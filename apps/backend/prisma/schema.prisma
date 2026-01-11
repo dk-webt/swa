@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Merchant {
+  id                   String    @id @default(uuid())
+  stripeAccountId      String    @unique @map("stripe_account_id")
+  surchargeRate        Decimal   @default(0.029) @map("surcharge_rate") @db.Decimal(5, 4)
+  enabled              Boolean   @default(true)
+  excludedStates       String[]  @default([]) @map("excluded_states")
+  mastercardNotifiedAt DateTime? @map("mastercard_notified_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  transactions Transaction[]
+  invoices     Invoice[]
+
+  @@map("merchants")
+}
+
+model Transaction {
+  id                    String   @id @default(uuid())
+  merchantId            String   @map("merchant_id")
+  stripePaymentIntentId String   @map("stripe_payment_intent_id")
+  baseAmount            Int      @map("base_amount")
+  surchargeAmount       Int      @map("surcharge_amount")
+  totalAmount           Int      @map("total_amount")
+  cardFunding           String   @map("card_funding")
+  billingState          String?  @map("billing_state")
+  eligible              Boolean
+  reason                String?
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+model Invoice {
+  id              String   @id @default(uuid())
+  merchantId      String   @map("merchant_id")
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime @map("period_end")
+  totalSurcharges Int      @map("total_surcharges")
+  successFee      Int      @map("success_fee")
+  stripeInvoiceId String?  @map("stripe_invoice_id")
+  status          String   @default("pending")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@index([periodStart, periodEnd])
+  @@map("invoices")
+}
