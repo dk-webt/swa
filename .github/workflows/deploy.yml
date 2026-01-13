@@ -53,7 +53,9 @@ jobs:
           sudo apt update && sudo apt install stripe
 
       - name: Install Stripe Apps plugin
-        run: stripe plugin install apps
+        run: |
+          mkdir -p ~/.config/stripe
+          stripe plugin install apps
         env:
           STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
 
