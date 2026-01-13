@@ -60,7 +60,7 @@ jobs:
           STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
 
       - name: Upload Stripe App
-        run: stripe apps upload
+        run: stripe apps upload --confirm
         working-directory: ./apps/stripe-app
         env:
           STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
