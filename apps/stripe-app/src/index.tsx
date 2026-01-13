@@ -4,5 +4,7 @@
  * Exports all views for the Stripe Dashboard
  */
 
-export { DashboardView } from './views/DashboardView';
-export { PaymentDetailView } from './views/PaymentDetailView';
+import DashboardView from './views/DashboardView';
+import PaymentDetailView from './views/PaymentDetailView';
+
+export { DashboardView, PaymentDetailView };

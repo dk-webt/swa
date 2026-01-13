@@ -2,7 +2,7 @@
  * Dashboard View
  *
  * Main view shown on the Stripe Dashboard home page
- * Displays surcharge settings and analytics
+ * Displays surcharge settings and analytics with focus on money recovered
  */
 
 import {
@@ -12,17 +12,24 @@ import {
   Divider,
   Inline,
   Link,
+  Select,
   Switch,
-  TextField,
   Badge,
-  Notice,
 } from '@stripe/ui-extension-sdk/ui';
 import type { ExtensionContextValue } from '@stripe/ui-extension-sdk/context';
 import { useCallback, useEffect, useState } from 'react';
 import fetchStripeSignature from '@stripe/ui-extension-sdk/signature';
 
-// States where surcharging is prohibited
+// States where surcharging is prohibited by law
 const PROHIBITED_STATES = ['CA', 'CT', 'MA', 'ME', 'PR'];
+
+// Common surcharge rate options
+const RATE_OPTIONS = [
+  { label: '2.0%', value: '2.0' },
+  { label: '2.5%', value: '2.5' },
+  { label: '2.9%', value: '2.9' },
+  { label: '3.0% (Max)', value: '3.0' },
+];
 
 interface MerchantSettings {
   id: string;
@@ -42,10 +49,13 @@ interface Analytics {
   };
 }
 
+// Backend API URL
+const BACKEND_URL = 'https://backend-production-5e37.up.railway.app';
+
 // Helper to make authenticated backend requests
 async function backendFetch(path: string, options: RequestInit = {}) {
   const signature = await fetchStripeSignature();
-  const response = await fetch(`https://backend-production-5e37.up.railway.app${path}`, {
+  const response = await fetch(`${BACKEND_URL}${path}`, {
     ...options,
     headers: {
       ...options.headers,
@@ -56,14 +66,13 @@ async function backendFetch(path: string, options: RequestInit = {}) {
   return response;
 }
 
-const DashboardView = ({
-  userContext,
-}: ExtensionContextValue) => {
+const DashboardView = ({ userContext }: ExtensionContextValue) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<MerchantSettings | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Form state
   const [surchargeRate, setSurchargeRate] = useState('2.9');
@@ -76,6 +85,7 @@ const DashboardView = ({
   useEffect(() => {
     const fetchData = async () => {
       if (!stripeAccountId) {
+        setError('Unable to identify Stripe account');
         setLoading(false);
         return;
       }
@@ -101,21 +111,24 @@ const DashboardView = ({
         }
 
         if (!response.ok) {
-          throw new Error('Failed to fetch merchant settings');
+          throw new Error('Failed to load merchant settings');
         }
 
         const merchant = await response.json();
         setSettings(merchant);
         setSurchargeRate((merchant.surchargeRate * 100).toFixed(1));
         setEnabled(merchant.enabled);
-        setExcludedStates(merchant.excludedStates);
+        setExcludedStates(merchant.excludedStates || []);
 
-        // Fetch analytics
-        const analyticsResponse = await backendFetch(`/api/merchants/${merchant.id}/analytics`);
-
-        if (analyticsResponse.ok) {
-          const analyticsData = await analyticsResponse.json();
-          setAnalytics(analyticsData);
+        // Fetch analytics (don't fail if this errors)
+        try {
+          const analyticsResponse = await backendFetch(`/api/merchants/${merchant.id}/analytics`);
+          if (analyticsResponse.ok) {
+            const analyticsData = await analyticsResponse.json();
+            setAnalytics(analyticsData);
+          }
+        } catch {
+          // Analytics fetch failed, continue without it
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -134,6 +147,7 @@ const DashboardView = ({
     try {
       setSaving(true);
       setError(null);
+      setSaveSuccess(false);
 
       const response = await backendFetch(`/api/merchants/${settings.id}`, {
         method: 'PATCH',
@@ -150,6 +164,10 @@ const DashboardView = ({
 
       const updated = await response.json();
       setSettings(updated);
+      setSaveSuccess(true);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {
@@ -157,29 +175,15 @@ const DashboardView = ({
     }
   }, [settings?.id, surchargeRate, enabled, excludedStates]);
 
-  if (loading) {
-    return (
-      <ContextView title="SWA - Surcharge Automation">
-        <Box css={{ padding: 'large', textAlign: 'center' }}>
-          <Box css={{ marginTop: 'medium' }}>Loading settings...</Box>
-        </Box>
-      </ContextView>
-    );
-  }
+  // Retry loading
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    // Re-trigger the useEffect by forcing a state change
+    setSettings(null);
+  }, []);
 
-  if (error) {
-    return (
-      <ContextView title="SWA - Surcharge Automation">
-        <Notice type="caution" title="Error">
-          {error}
-        </Notice>
-        <Box css={{ marginTop: 'medium' }}>
-          <Button onPress={() => window.location.reload()}>Retry</Button>
-        </Box>
-      </ContextView>
-    );
-  }
-
+  // Format currency
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -187,45 +191,139 @@ const DashboardView = ({
     }).format(cents / 100);
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <ContextView title="GlassFee">
+        <Box css={{ padding: 'large', textAlign: 'center' }}>
+          <Box css={{ color: 'secondary' }}>Loading your dashboard...</Box>
+        </Box>
+      </ContextView>
+    );
+  }
+
+  // Error state
+  if (error && !settings) {
+    return (
+      <ContextView title="GlassFee">
+        <Box css={{ padding: 'medium' }}>
+          <Box css={{
+            backgroundColor: 'container',
+            padding: 'medium',
+            borderRadius: 'medium',
+            marginBottom: 'medium'
+          }}>
+            <Box css={{ fontWeight: 'semibold', marginBottom: 'xsmall', color: 'critical' }}>
+              Unable to Load
+            </Box>
+            <Box css={{ fontSize: 'small', color: 'secondary' }}>
+              {error}
+            </Box>
+          </Box>
+          <Button onPress={handleRetry}>Try Again</Button>
+        </Box>
+      </ContextView>
+    );
+  }
+
   return (
     <ContextView
-      title="SWA - Surcharge Automation"
+      title="GlassFee"
       actions={
         <Button type="primary" onPress={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Settings'}
+          {saving ? 'Saving...' : 'Save'}
         </Button>
       }
     >
-      {/* Analytics Summary */}
+      {/* Success message */}
+      {saveSuccess && (
+        <Box css={{
+          backgroundColor: 'positive',
+          padding: 'small',
+          borderRadius: 'small',
+          marginBottom: 'medium'
+        }}>
+          <Box css={{ fontSize: 'small', color: 'primary' }}>
+            Settings saved successfully
+          </Box>
+        </Box>
+      )}
+
+      {/* Error message (non-blocking) */}
+      {error && settings && (
+        <Box css={{
+          backgroundColor: 'critical',
+          padding: 'small',
+          borderRadius: 'small',
+          marginBottom: 'medium'
+        }}>
+          <Box css={{ fontSize: 'small' }}>{error}</Box>
+        </Box>
+      )}
+
+      {/* Hero: Money Recovered */}
+      <Box css={{
+        backgroundColor: 'container',
+        padding: 'large',
+        borderRadius: 'medium',
+        marginBottom: 'large',
+        textAlign: 'center'
+      }}>
+        <Box css={{ fontSize: 'small', color: 'secondary', marginBottom: 'xsmall' }}>
+          Total Fees Recovered
+        </Box>
+        <Box css={{ fontSize: 'xxlarge', fontWeight: 'bold', marginBottom: 'xsmall' }}>
+          {analytics ? formatCurrency(analytics.totalSurcharges) : '$0.00'}
+        </Box>
+        {analytics && analytics.last30Days.surchargeAmount > 0 && (
+          <Box css={{ fontSize: 'small', color: 'positive' }}>
+            +{formatCurrency(analytics.last30Days.surchargeAmount)} this month
+          </Box>
+        )}
+      </Box>
+
+      {/* Quick Stats */}
       {analytics && (
         <Box css={{ marginBottom: 'large' }}>
-          <Box css={{ fontWeight: 'semibold', marginBottom: 'small' }}>
+          <Box css={{ fontWeight: 'semibold', marginBottom: 'small', fontSize: 'small' }}>
             Last 30 Days
           </Box>
-          <Inline css={{ gap: 'large' }}>
-            <Box>
-              <Box css={{ fontSize: 'small', color: 'secondary' }}>
-                Surcharges Collected
+          <Inline css={{ gap: 'medium' }}>
+            <Box css={{
+              flex: 1,
+              backgroundColor: 'container',
+              padding: 'medium',
+              borderRadius: 'small',
+              textAlign: 'center'
+            }}>
+              <Box css={{ fontSize: 'large', fontWeight: 'bold' }}>
+                {analytics.last30Days.eligible + analytics.last30Days.ineligible}
               </Box>
-              <Box css={{ fontSize: 'xlarge', fontWeight: 'bold' }}>
-                {formatCurrency(analytics.last30Days.surchargeAmount)}
-              </Box>
+              <Box css={{ fontSize: 'xsmall', color: 'secondary' }}>Total</Box>
             </Box>
-            <Box>
-              <Box css={{ fontSize: 'small', color: 'secondary' }}>
-                Eligible Transactions
-              </Box>
-              <Box css={{ fontSize: 'xlarge', fontWeight: 'bold' }}>
+            <Box css={{
+              flex: 1,
+              backgroundColor: 'container',
+              padding: 'medium',
+              borderRadius: 'small',
+              textAlign: 'center'
+            }}>
+              <Box css={{ fontSize: 'large', fontWeight: 'bold', color: 'positive' }}>
                 {analytics.last30Days.eligible}
               </Box>
+              <Box css={{ fontSize: 'xsmall', color: 'secondary' }}>Surcharged</Box>
             </Box>
-            <Box>
-              <Box css={{ fontSize: 'small', color: 'secondary' }}>
-                Ineligible
-              </Box>
-              <Box css={{ fontSize: 'xlarge', fontWeight: 'bold' }}>
+            <Box css={{
+              flex: 1,
+              backgroundColor: 'container',
+              padding: 'medium',
+              borderRadius: 'small',
+              textAlign: 'center'
+            }}>
+              <Box css={{ fontSize: 'large', fontWeight: 'bold' }}>
                 {analytics.last30Days.ineligible}
               </Box>
+              <Box css={{ fontSize: 'xsmall', color: 'secondary' }}>Blocked</Box>
             </Box>
           </Inline>
         </Box>
@@ -234,92 +332,62 @@ const DashboardView = ({
       <Divider />
 
       {/* Settings */}
-      <Box css={{ marginTop: 'large' }}>
-        <Box css={{ fontWeight: 'semibold', marginBottom: 'medium' }}>
-          Surcharge Settings
+      <Box css={{ marginTop: 'large', marginBottom: 'large' }}>
+        <Box css={{ fontWeight: 'semibold', marginBottom: 'medium', fontSize: 'small' }}>
+          Settings
         </Box>
 
         <Box css={{ marginBottom: 'medium' }}>
           <Switch
             label="Enable Surcharging"
             checked={enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
+            onChange={(e: { target: { checked: boolean } }) => setEnabled(e.target.checked)}
           />
-          <Box css={{ fontSize: 'small', color: 'secondary', marginTop: 'xsmall' }}>
-            When disabled, no surcharges will be applied
-          </Box>
         </Box>
 
         <Box css={{ marginBottom: 'medium' }}>
-          <TextField
-            label="Surcharge Rate (%)"
+          <Select
+            label="Surcharge Rate"
             value={surchargeRate}
-            onChange={(e) => setSurchargeRate(e.target.value)}
-          />
-          <Box css={{ fontSize: 'small', color: 'secondary', marginTop: 'xsmall' }}>
-            Maximum: 3% (Visa/MC rules)
+            onChange={(e: { target: { value: string } }) => setSurchargeRate(e.target.value)}
+          >
+            {RATE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+          <Box css={{ fontSize: 'xsmall', color: 'secondary', marginTop: 'xsmall' }}>
+            Card network maximum is 3%
           </Box>
-        </Box>
-
-        <Box css={{ marginBottom: 'medium' }}>
-          <Box css={{ marginBottom: 'xsmall', fontWeight: 'medium' }}>
-            Excluded States
-          </Box>
-          <Box css={{ fontSize: 'small', color: 'secondary', marginBottom: 'small' }}>
-            States marked with * are prohibited by law.
-          </Box>
-          <Inline css={{ gap: 'small', flexWrap: 'wrap' }}>
-            {['CA', 'CT', 'MA', 'ME', 'CO', 'MT', 'NY', 'PR'].map((state) => {
-              const isProhibited = PROHIBITED_STATES.includes(state);
-              const isExcluded = excludedStates.includes(state);
-
-              return (
-                <Button
-                  key={state}
-                  type={isExcluded ? 'primary' : 'secondary'}
-                  disabled={isProhibited}
-                  onPress={() => {
-                    if (isProhibited) return;
-                    if (isExcluded) {
-                      setExcludedStates(excludedStates.filter((s) => s !== state));
-                    } else {
-                      setExcludedStates([...excludedStates, state]);
-                    }
-                  }}
-                >
-                  {state}{isProhibited ? '*' : ''}
-                </Button>
-              );
-            })}
-          </Inline>
         </Box>
       </Box>
 
       <Divider />
 
-      {/* Compliance Section */}
-      <Box css={{ marginTop: 'large' }}>
-        <Box css={{ fontWeight: 'semibold', marginBottom: 'medium' }}>
-          Compliance Status
+      {/* Compliance Status */}
+      <Box css={{ marginTop: 'large', marginBottom: 'large' }}>
+        <Box css={{ fontWeight: 'semibold', marginBottom: 'medium', fontSize: 'small' }}>
+          Compliance
         </Box>
 
         <Box css={{ marginBottom: 'small' }}>
           <Inline css={{ alignItems: 'center', gap: 'small' }}>
             <Badge type="positive">Active</Badge>
-            <Box>BIN Detection</Box>
+            <Box css={{ fontSize: 'small' }}>Card Detection</Box>
           </Inline>
-          <Box css={{ fontSize: 'small', color: 'secondary', marginLeft: 'large' }}>
-            Debit/prepaid cards excluded automatically
+          <Box css={{ fontSize: 'xsmall', color: 'secondary', marginLeft: 'xlarge' }}>
+            Debit & prepaid cards automatically excluded
           </Box>
         </Box>
 
         <Box css={{ marginBottom: 'small' }}>
           <Inline css={{ alignItems: 'center', gap: 'small' }}>
             <Badge type="positive">Active</Badge>
-            <Box>State Compliance</Box>
+            <Box css={{ fontSize: 'small' }}>State Rules</Box>
           </Inline>
-          <Box css={{ fontSize: 'small', color: 'secondary', marginLeft: 'large' }}>
-            CA, CT, MA, ME, PR blocked
+          <Box css={{ fontSize: 'xsmall', color: 'secondary', marginLeft: 'xlarge' }}>
+            {PROHIBITED_STATES.length} states blocked (CA, CT, MA, ME, PR)
           </Box>
         </Box>
 
@@ -328,19 +396,22 @@ const DashboardView = ({
             {settings?.mastercardNotifiedAt ? (
               <Badge type="positive">Complete</Badge>
             ) : (
-              <Badge type="warning">Pending</Badge>
+              <Badge type="warning">Action Needed</Badge>
             )}
-            <Box>Mastercard Notification</Box>
+            <Box css={{ fontSize: 'small' }}>Mastercard Notice</Box>
           </Inline>
-          <Box css={{ fontSize: 'small', color: 'secondary', marginLeft: 'large' }}>
+          <Box css={{ fontSize: 'xsmall', color: 'secondary', marginLeft: 'xlarge' }}>
             {settings?.mastercardNotifiedAt
               ? `Sent ${new Date(settings.mastercardNotifiedAt).toLocaleDateString()}`
               : 'Required 30 days before surcharging'}
           </Box>
           {!settings?.mastercardNotifiedAt && settings?.id && (
-            <Box css={{ marginTop: 'small', marginLeft: 'large' }}>
-              <Link href={`https://backend-production-5e37.up.railway.app/api/merchants/${settings.id}/compliance/mastercard-letter`}>
-                Generate notification letter
+            <Box css={{ marginTop: 'xsmall', marginLeft: 'xlarge' }}>
+              <Link
+                href={`${BACKEND_URL}/api/merchants/${settings.id}/compliance/mastercard-letter`}
+                external
+              >
+                Generate letter →
               </Link>
             </Box>
           )}
@@ -349,13 +420,15 @@ const DashboardView = ({
 
       <Divider />
 
-      {/* Integration */}
-      <Box css={{ marginTop: 'large' }}>
-        <Box css={{ fontWeight: 'semibold', marginBottom: 'medium' }}>
-          Integration
+      {/* Footer */}
+      <Box css={{ marginTop: 'medium' }}>
+        <Box css={{ fontSize: 'xsmall', color: 'secondary' }}>
+          Merchant ID: {settings?.id || '—'}
         </Box>
-        <Box css={{ fontSize: 'small', color: 'secondary' }}>
-          Merchant ID: {settings?.id}
+        <Box css={{ marginTop: 'xsmall' }}>
+          <Link href="https://github.com/dk-webt/swa/blob/master/docs/integration.md" external>
+            Integration Guide →
+          </Link>
         </Box>
       </Box>
     </ContextView>
