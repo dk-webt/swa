@@ -2,7 +2,7 @@
 import DashboardView from '../src/views/DashboardView';import PaymentDetailView from '../src/views/PaymentDetailView';
 
 export * from '@stripe/ui-extension-sdk/version';
-export const BUILD_TIME = '2026-01-11 07:20:21.347717257 +0000 UTC m=+0.847666660';
+export const BUILD_TIME = '2026-01-11 07:26:14.161309195 +0000 UTC m=+0.818061474';
 
 export { 
   DashboardView,	
@@ -33,19 +33,7 @@ export default {
       "purpose": "Update payment amount to include calculated surcharge and store tracking metadata"
     }
   ],
-  "post_install_action": {
-    "type": "external",
-    "url": "https://backend-production-5e37.up.railway.app/onboarding"
-  },
   "ui_extension": {
-    "content_security_policy": {
-      "connect-src": [
-        "https://backend-production-5e37.up.railway.app/api/merchants",
-        "https://backend-production-5e37.up.railway.app/api/compliance"
-      ],
-      "image-src": null,
-      "purpose": ""
-    },
     "views": [
       {
         "component": "DashboardView",
@@ -57,5 +45,5 @@ export default {
       }
     ]
   },
-  "version": "0.1.2"
+  "version": "0.1.3"
 };
