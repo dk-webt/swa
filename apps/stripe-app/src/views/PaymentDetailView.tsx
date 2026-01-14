@@ -14,11 +14,15 @@ import {
 } from '@stripe/ui-extension-sdk/ui';
 import type { ExtensionContextValue } from '@stripe/ui-extension-sdk/context';
 
+interface PaymentIntentObject {
+  metadata?: Record<string, string>;
+}
+
 const PaymentDetailView = ({
   environment,
 }: ExtensionContextValue) => {
   // Get payment intent from environment context
-  const paymentIntent = environment?.objectContext?.object;
+  const paymentIntent = environment?.objectContext?.object as PaymentIntentObject | undefined;
 
   if (!paymentIntent) {
     return (
